@@ -10,6 +10,9 @@
 # 忽略名为 model.sh 的文件
 model.sh
 
+# 忽略experiments文件夹
+testjobs/experiments
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
