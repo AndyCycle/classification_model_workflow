@@ -1,3 +1,15 @@
+# 忽略所有 .out 文件
+*.out
+
+# 忽略所有 .err 文件
+*.err
+
+# 忽略所有 .log 文件
+*.log
+
+# 忽略名为 model.sh 的文件
+model.sh
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
