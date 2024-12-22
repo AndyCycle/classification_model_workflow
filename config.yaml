@@ -1,0 +1,41 @@
+# 数据配置
+data:
+  data_path: '../data/breast_cancer.csv'  # 更新为新的数据文件路径
+  label_column: 'diagnosis'            # 标签列名
+  train_ratio: 0.7
+  val_ratio: 0.15
+  batch_size: 32
+  normalize: true
+  num_workers: 1
+  pin_memory: true
+
+# 模型配置
+model:
+  type: 'MLP'                           # 使用 MLP 模型
+  input_size: 30                       # 特征维度（乳腺癌数据集有30个特征）
+  hidden_size: 128
+  num_classes: 2
+  dropout_rate: 0.3
+  pretrained_path: null
+
+# 训练配置
+training:
+  learning_rate: 0.001
+  num_epochs: 50                        # 减少训练轮数以加快测试
+  device: 'cuda'
+  early_stopping_patience: 10
+  checkpoint_interval: 10
+  plot_interval: 5
+
+# 评估配置
+evaluation:
+  bootstrap_iterations: 1000
+  cv_folds: 5
+
+# 优化配置
+optimization:
+  n_trials: 20                          # 减少试验次数以加快测试
+  timeout: 7200  # 2小时
+
+# 保存配置
+save_dir: 'experiments'

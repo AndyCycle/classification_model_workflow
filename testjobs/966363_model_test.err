@@ -1,0 +1,29 @@
+2024-12-19 20:47:34,261 - utils - INFO - Configuration loaded from /share/home/lsy_chenyanchao/projects/model_test/config.yaml
+2024-12-19 20:47:34,265 - utils - INFO - Created experiment directory: experiments/20241219_204734
+2024-12-19 20:47:34,311 - data - ERROR - Error loading data: 'CustomDataset' object has no attribute 'label_encoder'
+2024-12-19 20:47:34,312 - data - ERROR - Error setting up data module: 'CustomDataset' object has no attribute 'label_encoder'
+2024-12-19 20:47:34,312 - __main__ - ERROR - Error in main execution: 'CustomDataset' object has no attribute 'label_encoder'
+Traceback (most recent call last):
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/main.py", line 177, in <module>
+    main(args.config, args.mode)
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/main.py", line 82, in main
+    data_module.setup()
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 143, in setup
+    self.dataset = CustomDataset(
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 50, in __init__
+    self.data, self.labels = self._load_data(data_path, label_column)
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 81, in _load_data
+    labels = self.label_encoder.fit_transform(labels)  # M=1, B=0
+AttributeError: 'CustomDataset' object has no attribute 'label_encoder'
+Traceback (most recent call last):
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/main.py", line 177, in <module>
+    main(args.config, args.mode)
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/main.py", line 82, in main
+    data_module.setup()
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 143, in setup
+    self.dataset = CustomDataset(
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 50, in __init__
+    self.data, self.labels = self._load_data(data_path, label_column)
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 81, in _load_data
+    labels = self.label_encoder.fit_transform(labels)  # M=1, B=0
+AttributeError: 'CustomDataset' object has no attribute 'label_encoder'

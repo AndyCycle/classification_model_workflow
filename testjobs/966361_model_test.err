@@ -1,0 +1,49 @@
+2024-12-19 20:46:40,875 - utils - INFO - Configuration loaded from /share/home/lsy_chenyanchao/projects/model_test/config.yaml
+2024-12-19 20:46:40,884 - utils - INFO - Created experiment directory: experiments/20241219_204640
+2024-12-19 20:46:40,885 - data - ERROR - Error loading data: [Errno 2] No such file or directory: 'data/breast_cancer.csv'
+2024-12-19 20:46:40,885 - data - ERROR - Error setting up data module: [Errno 2] No such file or directory: 'data/breast_cancer.csv'
+2024-12-19 20:46:40,885 - __main__ - ERROR - Error in main execution: [Errno 2] No such file or directory: 'data/breast_cancer.csv'
+Traceback (most recent call last):
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/main.py", line 177, in <module>
+    main(args.config, args.mode)
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/main.py", line 82, in main
+    data_module.setup()
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 143, in setup
+    self.dataset = CustomDataset(
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 50, in __init__
+    self.data, self.labels = self._load_data(data_path, label_column)
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 70, in _load_data
+    df = pd.read_csv(data_path)
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/parsers/readers.py", line 912, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/parsers/readers.py", line 577, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/parsers/readers.py", line 1407, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/parsers/readers.py", line 1661, in _make_engine
+    self.handles = get_handle(
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/common.py", line 859, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: 'data/breast_cancer.csv'
+Traceback (most recent call last):
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/main.py", line 177, in <module>
+    main(args.config, args.mode)
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/main.py", line 82, in main
+    data_module.setup()
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 143, in setup
+    self.dataset = CustomDataset(
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 50, in __init__
+    self.data, self.labels = self._load_data(data_path, label_column)
+  File "/share/home/lsy_chenyanchao/projects/model_test/scr/data.py", line 70, in _load_data
+    df = pd.read_csv(data_path)
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/parsers/readers.py", line 912, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/parsers/readers.py", line 577, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/parsers/readers.py", line 1407, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/parsers/readers.py", line 1661, in _make_engine
+    self.handles = get_handle(
+  File "/share/home/lsy_chenyanchao/software/miniconda3/envs/deeplearning/lib/python3.8/site-packages/pandas/io/common.py", line 859, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: 'data/breast_cancer.csv'
