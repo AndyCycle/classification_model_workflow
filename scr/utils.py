@@ -11,6 +11,7 @@ import optuna
 from sklearn.model_selection import ParameterGrid
 import pandas as pd
 from datetime import datetime
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,14 @@ class Utils:
         Returns:
             包含加载信息的字典
         """
+        if path is None:
+            logger.error("Model path is None. Please provide a valid path to the model checkpoint.")
+            return
+
+        if not os.path.isfile(path):
+            logger.error(f"Model checkpoint file does not exist at path: {path}")
+            return
+
         try:
             checkpoint = torch.load(path)
             model.load_state_dict(checkpoint['model_state_dict'])
@@ -217,8 +226,7 @@ class Utils:
         return exp_dir
 
     @staticmethod
-    def save_results(results: Dict,
-                    save_path: str) -> None:
+    def save_results(results: Dict, save_path: str) -> None:
         """
         保存结果到JSON文件
 
@@ -229,7 +237,7 @@ class Utils:
         try:
             results_copy = Utils._convert_ndarray(results)
             with open(save_path, 'w') as f:
-                json.dump(results_copy, f, indent=4)
+                json.dump(results_copy, f, indent=4, default=Utils._json_default)
             logger.info(f"Results saved to {save_path}")
         except Exception as e:
             logger.error(f"Error saving results: {str(e)}")
@@ -253,6 +261,24 @@ class Utils:
         elif isinstance(obj, list):
             return [Utils._convert_ndarray(item) for item in obj]
         return obj
+
+    @staticmethod
+    def _json_default(obj):
+        """
+        JSON序列化的默认处理函数
+
+        Args:
+            obj: 需要序列化的对象
+
+        Returns:
+            可序列化的对象
+        """
+        if isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
 
     @staticmethod
     def setup_optuna_study(study_name: str,

@@ -1,5 +1,5 @@
 ﻿import yaml
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Dict, Any
 
 @dataclass
@@ -50,6 +50,8 @@ class Config:
     optimization: OptimizationConfig
     save_dir: str
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 class ConfigManager:
     @staticmethod

@@ -14,7 +14,7 @@ EXEC=/share/home/lsy_chenyanchao/projects/model_test/scr/main.py
 echo "process will start at : "
 date
 
-python3 $EXEC --config ../config.yaml --mode train
+python3 $EXEC --config ../config.yaml --mode evaluate
 
 echo "process end at : "
 date

@@ -133,6 +133,7 @@ class Evaluator:
             # 预测
             outputs = self.model(batch_data)
             probs = torch.softmax(outputs, dim=1)
+            probs = probs.detach()
             _, predicted = torch.max(outputs, 1)
 
             # 计算指标
@@ -330,30 +331,37 @@ class Evaluator:
         plt.figure(figsize=(8, 6))
 
         # 绘制每一折的ROC曲线
-        mean_tpr = np.zeros_like(cv_results['fold_metrics'][0]['tpr'])
         mean_fpr = np.linspace(0, 1, 100)
+        mean_tpr = np.zeros_like(mean_fpr)
 
         for fold, metrics in enumerate(cv_results['fold_metrics']):
+            # Interpolate tpr values
+            interp_tpr = np.interp(mean_fpr, metrics['fpr'], metrics['tpr'])
+            interp_tpr[0] = 0.0  # Ensure the curve starts at (0,0)
+            mean_tpr += interp_tpr
+
             plt.plot(
                 metrics['fpr'],
                 metrics['tpr'],
                 alpha=0.3,
                 label=f'ROC fold {fold+1} (AUC = {metrics["auc"]:.4f})'
             )
-            mean_tpr += np.interp(mean_fpr, metrics['fpr'], metrics['tpr'])
 
         # 绘制平均ROC曲线
         mean_tpr /= len(cv_results['fold_metrics'])
-        mean_auc = auc(mean_fpr, mean_tpr)
+        mean_tpr[-1] = 1.0  # Ensure the curve ends at (1,1)
+
+        mean_auc = np.trapz(mean_tpr, mean_fpr)
         plt.plot(
             mean_fpr,
             mean_tpr,
-            'b-',
+            color='b',
             label=f'Mean ROC (AUC = {mean_auc:.4f})',
-            linewidth=2
+            linewidth=2,
+            alpha=0.8
         )
 
-        plt.plot([0, 1], [0, 1], 'k--')
+        plt.plot([0, 1], [0, 1], 'k--', linewidth=2)
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
         plt.xlabel('False Positive Rate')

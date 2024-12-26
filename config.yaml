@@ -16,7 +16,7 @@ model:
   hidden_size: 128
   num_classes: 2
   dropout_rate: 0.3
-  pretrained_path: null
+  pretrained_path: /share/home/lsy_chenyanchao/projects/model_test/testjobs/experiments/20241223_163353/best_model.pth
 
 # 训练配置
 training:
@@ -34,8 +34,14 @@ evaluation:
 
 # 优化配置
 optimization:
-  n_trials: 20                          # 减少试验次数以加快测试
-  timeout: 7200  # 2小时
+  search_method: 'bayesian'  # 选择优化方法：'bayesian' 或 'grid'
+  n_trials: 20                # 仅在贝叶斯优化中使用
+  timeout: 7200               # 2小时，仅在贝叶斯优化中使用
+  grid_search:
+    learning_rate: [0.001, 0.01, 0.1]
+    batch_size: [16, 32, 64, 128]
+    hidden_size: [64, 128, 256, 512]
+    dropout_rate: [0.1, 0.3, 0.5]
 
 # 保存配置
 save_dir: 'experiments'
