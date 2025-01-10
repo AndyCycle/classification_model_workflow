@@ -35,8 +35,29 @@ evaluation:
 # 优化配置
 optimization:
   search_method: 'bayesian'  # 选择优化方法：'bayesian' 或 'grid'
-  n_trials: 20                # 仅在贝叶斯优化中使用
-  timeout: 7200               # 2小时，仅在贝叶斯优化中使用
+
+  # 贝叶斯优化相关配置
+  bayesian:
+    n_trials: 20                # 试验次数
+    timeout: 7200               # 2小时
+    search_space:
+      learning_rate:
+        type: 'float'
+        low: 1e-5
+        high: 1e-2
+        log: true
+      batch_size:
+        type: 'categorical'
+        choices: [16, 32, 64, 128]
+      hidden_size:
+        type: 'categorical'
+        choices: [64, 128, 256, 512]
+      dropout_rate:
+        type: 'float'
+        low: 0.1
+        high: 0.5
+
+  # 网格搜索相关配置
   grid_search:
     learning_rate: [0.001, 0.01, 0.1]
     batch_size: [16, 32, 64, 128]

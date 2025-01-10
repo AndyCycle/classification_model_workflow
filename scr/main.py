@@ -7,6 +7,7 @@ from typing import Dict, Any
 import optuna
 from datetime import datetime
 import itertools
+import copy
 
 from data import DataModule
 from model import ModelBuilder
@@ -38,11 +39,12 @@ def grid_search(config: Dict, data_module: DataModule) -> Dict:
         params = dict(zip(keys, combo))
         logger.info(f"Testing combination: {params}")
 
-        # 更新配置
-        config['training'].update(params)
+        # 使用深拷贝避免修改原始配置
+        trial_config = copy.deepcopy(config)
+        trial_config['training'].update(params)
 
         # 构建模型
-        model_builder = ModelBuilder(config)
+        model_builder = ModelBuilder(trial_config)
         model = model_builder.build_model()
 
         # 定义损失函数和优化器
@@ -51,11 +53,12 @@ def grid_search(config: Dict, data_module: DataModule) -> Dict:
 
         # 训练模型
         trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                         criterion, optimizer, config)
+                         criterion, optimizer, trial_config)
         trainer.train()
 
-        # 记录结果
-        results[str(params)] = trainer.best_val_acc
+        # 记录结果，使用元组作为键
+        params_tuple = tuple(sorted(params.items()))
+        results[params_tuple] = trainer.best_val_acc
 
     return results
 
@@ -71,21 +74,26 @@ def objective(trial: optuna.Trial, config: Dict, data_module: DataModule) -> flo
     Returns:
         验证集上的性能指标
     """
-    # 从配置文件中读取搜索空间
-    search_space = config['optimization']['grid_search']
+    # 使用深拷贝避免修改原始配置
+    trial_config = copy.deepcopy(config)
 
-    params = {
-        'learning_rate': trial.suggest_float('learning_rate', min(search_space['learning_rate']), max(search_space['learning_rate']), log=True),
-        'batch_size': trial.suggest_categorical('batch_size', search_space['batch_size']),
-        'hidden_size': trial.suggest_categorical('hidden_size', search_space['hidden_size']),
-        'dropout_rate': trial.suggest_float('dropout_rate', min(search_space['dropout_rate']), max(search_space['dropout_rate']))
-    }
+    # 从配置文件中读取贝叶斯优化的搜索空间
+    search_space = trial_config['optimization']['bayesian']['search_space']
+
+    params = {}
+    for param, details in search_space.items():
+        if details['type'] == 'float':
+            params[param] = trial.suggest_float(param, details['low'], details['high'], log=details.get('log', False))
+        elif details['type'] == 'categorical':
+            params[param] = trial.suggest_categorical(param, details['choices'])
+        else:
+            raise ValueError(f"Unsupported parameter type: {details['type']}")
 
     # 更新配置
-    config['training'].update(params)
+    trial_config['training'].update(params)
 
     # 构建模型
-    model_builder = ModelBuilder(config)
+    model_builder = ModelBuilder(trial_config)
     model = model_builder.build_model()
 
     # 定义损失函数和优化器
@@ -94,7 +102,7 @@ def objective(trial: optuna.Trial, config: Dict, data_module: DataModule) -> flo
 
     # 训练模型
     trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                     criterion, optimizer, config)
+                    criterion, optimizer, trial_config)
     trainer.train()
 
     return trainer.best_val_acc
@@ -135,7 +143,7 @@ def main(config_path: str, mode: str) -> None:
         optimizer = torch.optim.Adam(model.parameters(), lr=config_dict['training']['learning_rate'])
 
         trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                         criterion, optimizer, config_dict)
+                        criterion, optimizer, config_dict)
         trainer.train()
 
         # 评估
@@ -171,7 +179,7 @@ def main(config_path: str, mode: str) -> None:
 
     elif mode == 'optimize':
         # 超参数优化模式
-        search_method = config_dict['optimization']['search_method'] # 选择优化方法：'bayesian' 或 'grid'
+        search_method = config_dict['optimization']['search_method']  # 选择优化方法：'bayesian' 或 'grid'
         if search_method == 'bayesian':
             # 贝叶斯优化模式
             study = Utils.setup_optuna_study(
@@ -180,30 +188,33 @@ def main(config_path: str, mode: str) -> None:
             )
             study.optimize(
                 lambda trial: objective(trial, config_dict, data_module),
-                n_trials=config_dict['optimization']['n_trials'],
-                timeout=config_dict['optimization'].get('timeout', None)
+                n_trials=config_dict['optimization']['bayesian']['n_trials'],
+                timeout=config_dict['optimization']['bayesian'].get('timeout', None)
             )
             # 保存优化结果
-            Utils.save_results({
+            optimization_results = {
                 'best_params': study.best_params,
                 'best_value': study.best_value,
                 'best_trial': study.best_trial.number
-            }, exp_dir / 'optimization_results.json')
+            }
+            Utils.save_results(optimization_results, exp_dir / 'optimization_results.json')
 
             # 使用最佳参数训练最终模型
-            config_dict['training'].update(study.best_params)
-            model_builder = ModelBuilder(config_dict)
+            best_params = study.best_params
+            trial_config = copy.deepcopy(config_dict)
+            trial_config['training'].update(best_params)
+            model_builder = ModelBuilder(trial_config)
             model = model_builder.build_model()
 
             criterion = nn.CrossEntropyLoss()
-            optimizer = torch.optim.Adam(model.parameters(), lr=study.best_params['learning_rate'])
+            optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
 
             trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                             criterion, optimizer, config_dict)
+                            criterion, optimizer, trial_config)
             trainer.train()
 
             # 评估最终模型
-            evaluator = Evaluator(model, data_module.test_loader, criterion, config_dict)
+            evaluator = Evaluator(model, data_module.test_loader, criterion, trial_config)
             results = evaluator.evaluate()
             Utils.save_results(results, exp_dir / 'final_model_results.json')
 
@@ -214,23 +225,24 @@ def main(config_path: str, mode: str) -> None:
 
             # 找到最佳参数
             best_combo = max(grid_results, key=grid_results.get)
-            best_params = eval(best_combo)  # 将字符串转换为字典
+            best_params = dict(best_combo)  # 将元组转换为字典
             logger.info(f"Best parameters from grid search: {best_params}")
 
             # 使用最佳参数训练最终模型
-            config_dict['training'].update(best_params)
-            model_builder = ModelBuilder(config_dict)
+            trial_config = copy.deepcopy(config_dict)
+            trial_config['training'].update(best_params)
+            model_builder = ModelBuilder(trial_config)
             model = model_builder.build_model()
 
             criterion = nn.CrossEntropyLoss()
             optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
 
             trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                             criterion, optimizer, config_dict)
+                            criterion, optimizer, trial_config)
             trainer.train()
 
             # 评估最终模型
-            evaluator = Evaluator(model, data_module.test_loader, criterion, config_dict)
+            evaluator = Evaluator(model, data_module.test_loader, criterion, trial_config)
             results = evaluator.evaluate()
             Utils.save_results(results, exp_dir / 'final_model_results.json')
 

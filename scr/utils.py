@@ -92,7 +92,7 @@ class Utils:
     @staticmethod
     def load_model(model: torch.nn.Module,
                   path: str,
-                  optimizer: Optional[torch.optim.Optimizer] = None) -> Dict:
+                  optimizer: Optional[torch.optim.Optimizer] = None) -> Optional[Dict]:
         """
         加载模型和相关信息
 
@@ -102,15 +102,15 @@ class Utils:
             optimizer: 优化器（可选）
 
         Returns:
-            包含加载信息的字典
+            包含加载信息的字典或None
         """
         if path is None:
             logger.error("Model path is None. Please provide a valid path to the model checkpoint.")
-            return
+            return None
 
         if not os.path.isfile(path):
             logger.error(f"Model checkpoint file does not exist at path: {path}")
-            return
+            return None
 
         try:
             checkpoint = torch.load(path)
@@ -246,10 +246,10 @@ class Utils:
     @staticmethod
     def _convert_ndarray(obj):
         """
-        递归将字典中的numpy.ndarray转换为列标
+        递归将字典中的numpy.ndarray转换为列表
 
         Args:
-            obj:需要转换的对象
+            obj: 需要转换的对象
 
         Returns:
             转换后的对象
