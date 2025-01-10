@@ -5,6 +5,7 @@
 本项目利用深度学习模型构建分类预测系统，支持灵活的模型搭建、训练、测试及评估。
 
 ## 项目架构
+- `config.py`：配置文件
 - `data.py`：数据处理与加载
 - `model.py`：模型构建与管理
 - `train.py`：模型训练
@@ -13,6 +14,9 @@
 - `main.py`：主控脚本
 
 ## 功能说明
+### config.py
+- **Config**：配置文件
+
 ### data.py
 - **DataLoader**：处理数据集划分和加载。
 
@@ -33,4 +37,7 @@
 
 ## 使用方法
 1. 配置`config.yaml`中的参数。
-2. 运行`main.py`开始训练和评估。
+2. 用`main.py --config your/path/to/config.yaml`开始训练和评估。
+3. 用`main.py --mode optimize`进行超参数优化。
+4. 用`main.py --mode train`进行模型测试。
+5. 用`main.py --mode evaluate`进行模型测试。
