@@ -1,6 +1,7 @@
 ﻿import yaml
 from pydantic import BaseModel, Field
 from typing import List, Literal, Dict, Any
+from typing import Optional
 
 class BayesianConfig(BaseModel):
     n_trials: int
@@ -34,7 +35,7 @@ class ModelConfig(BaseModel):
     hidden_size: int
     num_classes: int
     dropout_rate: float
-    pretrained_path: str
+    pretrained_path: Optional[str] = None  # 可选字段
 
 class TrainingConfig(BaseModel):
     learning_rate: float

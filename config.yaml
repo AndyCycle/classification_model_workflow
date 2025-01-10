@@ -16,7 +16,7 @@ model:
   hidden_size: 128
   num_classes: 2
   dropout_rate: 0.3
-  pretrained_path: /share/home/lsy_chenyanchao/projects/model_test/testjobs/experiments/20241223_163353/best_model.pth
+  pretrained_path:
 
 # 训练配置
 training:

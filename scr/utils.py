@@ -104,8 +104,8 @@ class Utils:
         Returns:
             包含加载信息的字典或None
         """
-        if path is None:
-            logger.error("Model path is None. Please provide a valid path to the model checkpoint.")
+        if not path:
+            logger.info("No pretrained model path provided, using initialized model.")
             return None
 
         if not os.path.isfile(path):

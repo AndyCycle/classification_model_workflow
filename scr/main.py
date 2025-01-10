@@ -151,24 +151,95 @@ def main(config_path: str, mode: str) -> None:
         logger.error(f"Error setting up data module: {str(e)}")
         raise
 
-    if mode == 'train':
-        # 训练模式
-        model_builder = ModelBuilder(config_dict)
-        model = model_builder.build_model()
+    if mode == 'train' or mode == 'optimize':
+            # 训练或优化模式不需要预训练模型
+            model_builder = ModelBuilder(config_dict)
+            model = model_builder.build_model()
 
-        criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=config_dict['training']['learning_rate'])
+            criterion = nn.CrossEntropyLoss()
+            optimizer = torch.optim.Adam(model.parameters(), lr=config_dict['training']['learning_rate'])
 
-        trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                        criterion, optimizer, config_dict)
-        trainer.train()
+            if mode == 'train':
+                trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
+                                criterion, optimizer, config_dict)
+                trainer.train()
 
-        # 评估
-        evaluator = Evaluator(model, data_module.test_loader, criterion, config_dict)
-        results = evaluator.evaluate()
+                # 评估
+                evaluator = Evaluator(model, data_module.test_loader, criterion, config_dict)
+                results = evaluator.evaluate()
+                Utils.save_results(results, exp_dir / 'final_results.json')
 
-        # 保存结果
-        Utils.save_results(results, exp_dir / 'final_results.json')
+            elif mode == 'optimize':
+                # 超参数优化模式
+                search_method = config.optimization.search_method  # 选择优化方法：'bayesian' 或 'grid'
+                if search_method == 'bayesian':
+                    # 贝叶斯优化模式
+                    study = Utils.setup_optuna_study(
+                        study_name=f"optimization_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                        direction='maximize'
+                    )
+                    study.optimize(
+                        lambda trial: objective(trial, config_dict, data_module),
+                        n_trials=config.optimization.bayesian.n_trials,
+                        timeout=config.optimization.bayesian.timeout
+                    )
+                    # 保存优化结果
+                    optimization_results = {
+                        'best_params': study.best_params,
+                        'best_value': study.best_value,
+                        'best_trial': study.best_trial.number
+                    }
+                    Utils.save_results(optimization_results, exp_dir / 'optimization_results.json')
+
+                    # 使用最佳参数训练最终模型
+                    best_params = study.best_params
+                    trial_config = copy.deepcopy(config_dict)
+                    trial_config['training'].update(best_params)
+                    model_builder = ModelBuilder(trial_config)
+                    model = model_builder.build_model()
+
+                    criterion = nn.CrossEntropyLoss()
+                    optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
+
+                    trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
+                                    criterion, optimizer, trial_config)
+                    trainer.train()
+
+                    # 评估最终模型
+                    evaluator = Evaluator(model, data_module.test_loader, criterion, trial_config)
+                    results = evaluator.evaluate()
+                    Utils.save_results(results, exp_dir / 'final_model_results.json')
+
+                elif search_method == 'grid':
+                    # 网格搜索模式
+                    grid_results = grid_search(config_dict, data_module)
+                    Utils.save_results(grid_results, exp_dir / 'grid_search_results.json')
+
+                    # 找到最佳参数
+                    best_combo = max(grid_results, key=grid_results.get)
+                    best_params = dict(best_combo)  # 将元组转换为字典
+                    logger.info(f"Best parameters from grid search: {best_params}")
+
+                    # 使用最佳参数训练最终模型
+                    trial_config = copy.deepcopy(config_dict)
+                    trial_config['training'].update(best_params)
+                    model_builder = ModelBuilder(trial_config)
+                    model = model_builder.build_model()
+
+                    criterion = nn.CrossEntropyLoss()
+                    optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
+
+                    trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
+                                    criterion, optimizer, trial_config)
+                    trainer.train()
+
+                    # 评估最终模型
+                    evaluator = Evaluator(model, data_module.test_loader, criterion, trial_config)
+                    results = evaluator.evaluate()
+                    Utils.save_results(results, exp_dir / 'final_model_results.json')
+
+                else:
+                    raise ValueError(f"Unsupported search method: {search_method}")
 
     elif mode == 'evaluate':
         # 评估模式
@@ -193,78 +264,6 @@ def main(config_path: str, mode: str) -> None:
             'cross_validation': cv_results
         }
         Utils.save_results(all_results, exp_dir / 'evaluation_results.json')
-
-    elif mode == 'optimize':
-        # 超参数优化模式
-        search_method = config.optimization.search_method  # 选择优化方法：'bayesian' 或 'grid'
-        if search_method == 'bayesian':
-            # 贝叶斯优化模式
-            study = Utils.setup_optuna_study(
-                study_name=f"optimization_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                direction='maximize'
-            )
-            study.optimize(
-                lambda trial: objective(trial, config_dict, data_module),
-                n_trials=config.optimization.bayesian.n_trials,
-                timeout=config.optimization.bayesian.timeout
-            )
-            # 保存优化结果
-            optimization_results = {
-                'best_params': study.best_params,
-                'best_value': study.best_value,
-                'best_trial': study.best_trial.number
-            }
-            Utils.save_results(optimization_results, exp_dir / 'optimization_results.json')
-
-            # 使用最佳参数训练最终模型
-            best_params = study.best_params
-            trial_config = copy.deepcopy(config_dict)
-            trial_config['training'].update(best_params)
-            model_builder = ModelBuilder(trial_config)
-            model = model_builder.build_model()
-
-            criterion = nn.CrossEntropyLoss()
-            optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
-
-            trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                             criterion, optimizer, trial_config)
-            trainer.train()
-
-            # 评估最终模型
-            evaluator = Evaluator(model, data_module.test_loader, criterion, trial_config)
-            results = evaluator.evaluate()
-            Utils.save_results(results, exp_dir / 'final_model_results.json')
-
-        elif search_method == 'grid':
-            # 网格搜索模式
-            grid_results = grid_search(config_dict, data_module)
-            Utils.save_results(grid_results, exp_dir / 'grid_search_results.json')
-
-            # 找到最佳参数
-            best_combo = max(grid_results, key=grid_results.get)
-            best_params = dict(best_combo)  # 将元组转换为字典
-            logger.info(f"Best parameters from grid search: {best_params}")
-
-            # 使用最佳参数训练最终模型
-            trial_config = copy.deepcopy(config_dict)
-            trial_config['training'].update(best_params)
-            model_builder = ModelBuilder(trial_config)
-            model = model_builder.build_model()
-
-            criterion = nn.CrossEntropyLoss()
-            optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
-
-            trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                             criterion, optimizer, trial_config)
-            trainer.train()
-
-            # 评估最终模型
-            evaluator = Evaluator(model, data_module.test_loader, criterion, trial_config)
-            results = evaluator.evaluate()
-            Utils.save_results(results, exp_dir / 'final_model_results.json')
-
-        else:
-            raise ValueError(f"Unsupported search method: {search_method}")
 
     else:
         raise ValueError(f"Unknown mode: {mode}")
