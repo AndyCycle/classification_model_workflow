@@ -120,7 +120,7 @@ def main(config_path: str, mode: str) -> None:
 
     # 加载配置
     config = ConfigManager.load_config(config_path)
-    config_dict = config.to_dict()
+    config_dict = config.dict()
 
     # 创建实验目录
     exp_dir = Utils.create_experiment_dir()
@@ -179,7 +179,7 @@ def main(config_path: str, mode: str) -> None:
 
     elif mode == 'optimize':
         # 超参数优化模式
-        search_method = config_dict['optimization']['search_method']  # 选择优化方法：'bayesian' 或 'grid'
+        search_method = config.optimization.search_method  # 选择优化方法：'bayesian' 或 'grid'
         if search_method == 'bayesian':
             # 贝叶斯优化模式
             study = Utils.setup_optuna_study(
@@ -188,8 +188,8 @@ def main(config_path: str, mode: str) -> None:
             )
             study.optimize(
                 lambda trial: objective(trial, config_dict, data_module),
-                n_trials=config_dict['optimization']['bayesian']['n_trials'],
-                timeout=config_dict['optimization']['bayesian'].get('timeout', None)
+                n_trials=config.optimization.bayesian.n_trials,
+                timeout=config.optimization.bayesian.timeout
             )
             # 保存优化结果
             optimization_results = {

@@ -1,9 +1,26 @@
 ﻿import yaml
 from dataclasses import asdict, dataclass, field
 from typing import Dict, Any
+from pydantic import BaseModel, Field
+from typing import List, Literal
 
-@dataclass
-class DataConfig:
+class BayesianConfig(BaseModel):
+    n_trials: int
+    timeout: int
+    search_space: Dict[str, Dict[str, Any]]
+
+class GridSearchConfig(BaseModel):
+    learning_rate: List[float]
+    batch_size: List[int]
+    hidden_size: List[int]
+    dropout_rate: List[float]
+
+class OptimizationConfig(BaseModel):
+    search_method: Literal['bayesian', 'grid']
+    bayesian: BayesianConfig = Field(default=None)
+    grid_search: GridSearchConfig = Field(default=None)
+
+class DataConfig(BaseModel):
     data_path: str
     label_column: str
     train_ratio: float
@@ -13,17 +30,15 @@ class DataConfig:
     num_workers: int
     pin_memory: bool
 
-@dataclass
-class ModelConfig:
+class ModelConfig(BaseModel):
     type: str
     input_size: int
     hidden_size: int
     num_classes: int
     dropout_rate: float
-    pretrained_path: str = None
+    pretrained_path: str
 
-@dataclass
-class TrainingConfig:
+class TrainingConfig(BaseModel):
     learning_rate: float
     num_epochs: int
     device: str
@@ -31,18 +46,11 @@ class TrainingConfig:
     checkpoint_interval: int
     plot_interval: int
 
-@dataclass
-class EvaluationConfig:
+class EvaluationConfig(BaseModel):
     bootstrap_iterations: int
     cv_folds: int
 
-@dataclass
-class OptimizationConfig:
-    n_trials: int
-    timeout: int
-
-@dataclass
-class Config:
+class Config(BaseModel):
     data: DataConfig
     model: ModelConfig
     training: TrainingConfig
@@ -50,20 +58,14 @@ class Config:
     optimization: OptimizationConfig
     save_dir: str
 
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
-
 class ConfigManager:
     @staticmethod
     def load_config(config_path: str) -> Config:
-        with open(config_path, 'r') as f:
+        import yaml
+        from pathlib import Path
+
+        with open(Path(config_path), 'r') as f:
             config_dict = yaml.safe_load(f)
-        return Config(
-            data=DataConfig(**config_dict['data']),
-            model=ModelConfig(**config_dict['model']),
-            training=TrainingConfig(**config_dict['training']),
-            evaluation=EvaluationConfig(**config_dict['evaluation']),
-            optimization=OptimizationConfig(**config_dict['optimization']),
-            save_dir=config_dict['save_dir']
-        )
+
+        return Config(**config_dict)
 
