@@ -1,8 +1,6 @@
 ﻿import yaml
-from dataclasses import asdict, dataclass, field
-from typing import Dict, Any
 from pydantic import BaseModel, Field
-from typing import List, Literal
+from typing import List, Literal, Dict, Any
 
 class BayesianConfig(BaseModel):
     n_trials: int
@@ -61,11 +59,6 @@ class Config(BaseModel):
 class ConfigManager:
     @staticmethod
     def load_config(config_path: str) -> Config:
-        import yaml
-        from pathlib import Path
-
-        with open(Path(config_path), 'r') as f:
+        with open(config_path, 'r') as f:
             config_dict = yaml.safe_load(f)
-
         return Config(**config_dict)
-

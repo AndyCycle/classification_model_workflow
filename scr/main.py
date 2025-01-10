@@ -83,7 +83,16 @@ def objective(trial: optuna.Trial, config: Dict, data_module: DataModule) -> flo
     params = {}
     for param, details in search_space.items():
         if details['type'] == 'float':
-            params[param] = trial.suggest_float(param, details['low'], details['high'], log=details.get('log', False))
+            try:
+                low = float(details['low'])
+                high = float(details['high'])
+            except ValueError as ve:
+                logger.error(f"Parameter {param} has invalid float values: low={details['low']}, high={details['high']}")
+                raise ve
+            log = details.get('log', False)
+            # 添加调试日志
+            logger.debug(f"Suggesting float for {param}: low={low}, high={high}, log={log}")
+            params[param] = trial.suggest_float(param, low, high, log=log)
         elif details['type'] == 'categorical':
             params[param] = trial.suggest_categorical(param, details['choices'])
         else:
@@ -102,7 +111,7 @@ def objective(trial: optuna.Trial, config: Dict, data_module: DataModule) -> flo
 
     # 训练模型
     trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                    criterion, optimizer, trial_config)
+                     criterion, optimizer, trial_config)
     trainer.train()
 
     return trainer.best_val_acc
@@ -121,6 +130,14 @@ def main(config_path: str, mode: str) -> None:
     # 加载配置
     config = ConfigManager.load_config(config_path)
     config_dict = config.dict()
+
+    # 调试日志：打印 Bayesian search_space 的内容和类型
+    bayesian_search_space = config_dict['optimization']['bayesian']['search_space']
+    for param, details in bayesian_search_space.items():
+        if details['type'] == 'float':
+            low = details['low']
+            high = details['high']
+            logger.debug(f"Param: {param}, low: {low} ({type(low)}), high: {high} ({type(high)})")
 
     # 创建实验目录
     exp_dir = Utils.create_experiment_dir()
@@ -210,7 +227,7 @@ def main(config_path: str, mode: str) -> None:
             optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
 
             trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                            criterion, optimizer, trial_config)
+                             criterion, optimizer, trial_config)
             trainer.train()
 
             # 评估最终模型
@@ -238,7 +255,7 @@ def main(config_path: str, mode: str) -> None:
             optimizer = torch.optim.Adam(model.parameters(), lr=best_params['learning_rate'])
 
             trainer = Trainer(model, data_module.train_loader, data_module.val_loader,
-                            criterion, optimizer, trial_config)
+                             criterion, optimizer, trial_config)
             trainer.train()
 
             # 评估最终模型
